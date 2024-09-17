@@ -1,16 +1,19 @@
 from flask import Flask, request, jsonify
 import mysql.connector
 from cryptography.fernet import Fernet
+from dotenv import load_dotenv
+import os
 
 app = Flask(__name__)
 
 def get_db_connection():
     return mysql.connector.connect(
-        host="boytok4k7nshaqdvtymn-mysql.services.clever-cloud.com",
-        user="ukmdmosti9gt4lav",
-        password="G5dhxCDE4g54NB9OsbLW",
-        database="boytok4k7nshaqdvtymn"
+        host=os.getenv('host'),
+        user=os.getenv('user'),
+        password=os.getenv('password'),
+        database=os.getenv('name')
     )
+
 
 # Load encryption key
 def load_key():
