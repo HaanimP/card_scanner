@@ -1,80 +1,54 @@
 from flask import Flask, request, jsonify
 import mysql.connector
-from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS
+
+load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
+# Database connection parameters
+DB_HOST = os.getenv("host")
+DB_USER = os.getenv("user")
+DB_PASSWORD = os.getenv("password")
+DB_NAME = os.getenv("database")
+
+# Create database connection
 def get_db_connection():
-    return mysql.connector.connect(
-        host=os.getenv('host'),
-        user=os.getenv('user'),
-        password=os.getenv('password'),
-        database=os.getenv('name')
+    conn = mysql.connector.connect(
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME
     )
+    return conn
 
-
-# Load encryption key
-def load_key():
-    return open("secret.key", "rb").read()
-
-# Encrypt QR data
-def encrypt_data(data):
-    key = load_key()
-    fernet = Fernet(key)
-    return fernet.encrypt(data.encode())
-
-# Decrypt QR data
-def decrypt_data(encrypted_data):
-    key = load_key()
-    fernet = Fernet(key)
-    return fernet.decrypt(encrypted_data).decode()
-
-# Root route to avoid 404 on the main page
 @app.route('/')
-def index():
-    return jsonify({'message': 'Welcome to the QR Data API'}), 200
+def home():
+    return "Server is running"
 
-# Handle favicon.ico requests to prevent 404 errors
-# @app.route('/favicon.ico')
-# def favicon():
-#     return '', 204  # No Content
 
-# Route to store encrypted QR code data
 @app.route('/store_qr_data', methods=['POST'])
 def store_qr_data():
-    data = request.json.get('qr_data')
-    if not data:
-        return jsonify({'error': 'No QR data provided'}), 400
-    
-    encrypted_data = encrypt_data(data)
-
-    # Insert into MySQL
+    data = request.json
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO users (qr_code_data) VALUES (%s)", (encrypted_data,))
-    conn.commit()
-    cursor.close()
-    conn.close()
 
-    return jsonify({'message': 'Data stored successfully'}), 200
+    try:
+        cursor.execute("""
+            INSERT INTO users (first_name, last_name, department)
+            VALUES (%s, %s, %s)
+        """, (data['first_name'], data['last_name'], data['department']))
 
-# Route to get decrypted QR code data
-@app.route('/get_qr_data/<int:user_id>', methods=['GET'])
-def get_qr_data(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT qr_code_data FROM users WHERE id = %s", (user_id,))
-    result = cursor.fetchone()
-    cursor.close()
-    conn.close()
-
-    if result:
-        decrypted_data = decrypt_data(result[0])
-        return jsonify({'qr_data': decrypted_data}), 200
-    else:
-        return jsonify({'message': 'User not found'}), 404
+        conn.commit()
+        return jsonify({"message": "QR data stored successfully"}), 200
+    except Exception as e:
+        return jsonify({"message": f"Error storing QR data: {str(e)}"}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True)
