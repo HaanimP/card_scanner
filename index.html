@@ -115,6 +115,7 @@
                                         console.log('Last Names:', lastName);
                                         console.log('Departments:', department);
 
+
                                         // Send data to the backend
                                         fetch('http://127.0.0.1:5000/store_qr_data', {
                                             method: 'POST',
@@ -127,15 +128,24 @@
                                                 department: department
                                             })
                                         })
-
-                                            .then(response => response.json())
+                                            .then(response => {
+                                                if (!response.ok) {
+                                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                                }
+                                                return response.json();
+                                            })
                                             .then(data => {
+                                                const successMessageElement = document.getElementById('success-message');
                                                 successMessageElement.innerHTML = `Success: ${data.message}`;
                                                 successMessageElement.style.color = 'green';
                                             })
                                             .catch((error) => {
                                                 console.error('Error:', error);
+                                                const successMessageElement = document.getElementById('success-message');
+                                                successMessageElement.innerHTML = `Error: ${error.message}`;
+                                                successMessageElement.style.color = 'red';
                                             });
+
 
                                         // Stop scanning after successful scan and data submission
                                         scanner.stop();
