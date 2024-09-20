@@ -29,26 +29,29 @@ def get_db_connection():
 def home():
     return "Server is running"
 
-
 @app.route('/store_qr_data', methods=['POST'])
 def store_qr_data():
-    data = request.json
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    if request.method == 'POST':
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    try:
-        cursor.execute("""
-            INSERT INTO users (first_name, last_name, department)
-            VALUES (%s, %s, %s)
-        """, (data['first_name'], data['last_name'], data['department']))
+        try:
+            cursor.execute("""
+                INSERT INTO users (first_name, last_name, department)
+                VALUES (%s, %s, %s)
+            """, (data['first_name'], data['last_name'], data['department']))
 
-        conn.commit()
-        return jsonify({"message": "QR data stored successfully"}), 200
-    except Exception as e:
-        return jsonify({"message": f"Error storing QR data: {str(e)}"}), 500
-    finally:
-        cursor.close()
-        conn.close()
+            conn.commit()
+            return jsonify({"message": "QR data stored successfully"}), 200
+        except Exception as e:
+            return jsonify({"message": f"Error storing QR data: {str(e)}"}), 500
+        finally:
+            cursor.close()
+            conn.close()
+    
+    elif request.method == 'GET':
+        return jsonify({"message": "GET method is not supported for storing QR data"}), 405
 
 if __name__ == '__main__':
     app.run(debug=True)

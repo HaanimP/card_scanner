@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile QR Code Scanner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f7f7f7;
+        }
+
+        #scanner-container {
+            width: 100%;
+            max-width: 400px;
+            margin: auto;
+            text-align: center;
+        }
+
+        video {
+            width: 100%;
+            border: 2px solid #000;
+            border-radius: 10px;
+        }
+
+        #result {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: green;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="scanner-container">
+        <p class="array"></p>
+        <div id="success-message"></div>
+        <h1>QR Code Scanner</h1>
+        <div id="qr-reader" style="width: 100%;"></div>
+        <div id="result">Scan a QR code to see the result here.</div>
+        <button id="start-button">Start Scanning</button>
+        <button id="stop-button" style="display:none;">Stop Scanning</button>
+
+
+    </div>
+
+    <!-- Include the Html5Qrcode library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.0.3/html5-qrcode.min.js"></script>
+
+    <script>
+        window.onload = function () {
+            function initializeScanner() {
+                const resultElement = document.getElementById('result');
+                const startButton = document.getElementById('start-button');
+                const stopButton = document.getElementById('stop-button');
+                const dataDisplay = document.querySelector('.array'); // Display area for structured data
+                let scanner;
+
+                startButton.addEventListener('click', function () {
+                    if (!scanner) {
+                        scanner = new Html5Qrcode("qr-reader");
+                    }
+
+                    Html5Qrcode.getCameras().then(devices => {
+                        if (devices && devices.length) {
+                            // Start scanning with the first available camera
+                            scanner.start(
+                                { facingMode: "environment" },
+                                {
+                                    fps: 10,    // frames per second
+                                    qrbox: 250  // scanning box size
+                                },
+                                (decodedText) => {
+                                    // Split the decoded text by empty spaces
+                                    const splitData = decodedText.split(' ');
+
+                                    // Assuming the QR code data format is: "FirstName LastName Department"
+                                    if (splitData.length >= 3) {
+                                        const firstName = splitData[0];
+                                        const lastName = splitData[1];
+                                        const department = splitData.slice(2).join(' '); // Handle cases where department might have spaces
+
+                                        // Update result and display arrays
+                                        const formattedResult = `First Name: ${firstName}, Last Name: ${lastName}, Department: ${department}`;
+                                        resultElement.innerHTML = `Scanned QR Code: ${formattedResult}`;
+                                        dataDisplay.innerHTML += `
+                                            <p>${formattedResult}</p>
+                                        `;
+
+                                        console.log('First Names:', firstName);
+                                        console.log('Last Names:', lastName);
+                                        console.log('Departments:', department);
+
+                                        // Send data to the backend
+                                        fetch('http://127.0.0.1:5000/store_qr_data', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({
+                                                first_name: firstName,
+                                                last_name: lastName,
+                                                department: department
+                                            })
+                                        })
+
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                successMessageElement.innerHTML = `Success: ${data.message}`;
+                                                successMessageElement.style.color = 'green';
+                                            })
+                                            .catch((error) => {
+                                                console.error('Error:', error);
+                                            });
+
+                                        // Stop scanning after successful scan and data submission
+                                        scanner.stop();
+                                        toggleButtons(false);
+                                    } else {
+                                        console.log("QR Code data does not match expected format.");
+                                    }
+                                },
+                                (errorMessage) => {
+                                    console.log("QR Code not found in view.");
+                                }
+                            ).catch(err => {
+                                console.log("Unable to start scanning:", err);
+                            });
+                            toggleButtons(true);
+                        }
+                    }).catch(err => {
+                        console.error("Error getting cameras:", err);
+                    });
+                });
+
+                stopButton.addEventListener('click', function () {
+                    if (scanner) {
+                        scanner.stop().then(() => {
+                            toggleButtons(false);
+                            console.log("Scanning stopped.");
+                        }).catch(err => {
+                            console.error("Error stopping scanner:", err);
+                        });
+                    }
+                });
+
+                function toggleButtons(isScanning) {
+                    startButton.style.display = isScanning ? 'none' : 'block';
+                    stopButton.style.display = isScanning ? 'block' : 'none';
+                }
+            }
+
+            // Call the initializeScanner function
+            initializeScanner();
+        };
+    </script>
+
+
+
+</body>
+
+</html>
