@@ -8,7 +8,9 @@ from flask_cors import CORS
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+# Include your specific origin (where index.html is hosted)
+CORS(app, supports_credentials=True, origins=["http://localhost:3000", " https://python-11qiyr2ng-unity-jnr-a12c5e00.vercel.app"])
 
 # Database connection parameters
 DB_HOST = os.getenv("host")
@@ -40,6 +42,7 @@ def get_db_connection():
 def home():
     return "Server is running"
 
+
 @app.route('/store_qr_data', methods=['POST'])
 def store_qr_data():
     data = request.json
@@ -65,6 +68,7 @@ def store_qr_data():
     finally:
         cursor.close()
         conn.close()
+
 
 if __name__ == '__main__':
     app.run(debug=True)
