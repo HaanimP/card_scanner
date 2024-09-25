@@ -10,7 +10,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # Include your specific origin (where index.html is hosted)
-CORS(app, supports_credentials=True, origins=["http://localhost:3000", " https://python-11qiyr2ng-unity-jnr-a12c5e00.vercel.app"])
+CORS(app, supports_credentials=True, origins=["http://localhost:3000", "qr-code-peach-theta.vercel.app"])
 
 # Database connection parameters
 DB_HOST = os.getenv("host")
